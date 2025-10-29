@@ -28,11 +28,30 @@ export function DeleteFolderDialog({ open, onOpenChange, folder, onSuccess }: De
   const handleDelete = async () => {
     setIsDeleting(true)
     try {
+      console.log("[v0] Deleting folder from Cloudinary:", folder.name)
+      const response = await fetch("/api/cloudinary/delete-folder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          folderId: folder.id,
+          folderName: folder.name,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to delete folder from Cloudinary")
+      }
+
+      const result = await response.json()
+      console.log("[v0] Cloudinary deletion complete, deleted", result.deletedImages, "images")
+
+      // Now delete from localStorage
       deleteFolder(folder.id)
-      toast.success("Folder deleted successfully")
+      toast.success("Folder and images deleted successfully")
       onOpenChange(false)
       onSuccess()
     } catch (error) {
+      console.error("[v0] Delete folder error:", error)
       toast.error(error instanceof Error ? error.message : "Failed to delete folder")
     } finally {
       setIsDeleting(false)
@@ -52,7 +71,7 @@ export function DeleteFolderDialog({ open, onOpenChange, folder, onSuccess }: De
             {folder.imageCount > 0 && (
               <span className="block mt-2 text-destructive">
                 This folder contains {folder.imageCount} image{folder.imageCount !== 1 ? "s" : ""}. All images will be
-                deleted from localStorage.
+                permanently deleted from Cloudinary and localStorage.
               </span>
             )}
           </DialogDescription>
