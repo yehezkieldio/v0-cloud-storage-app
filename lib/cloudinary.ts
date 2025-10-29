@@ -48,12 +48,18 @@ export async function uploadToCloudinary(buffer: Buffer, folderName: string | nu
     timestamp,
   }
 
-  if (folderName) {
-    paramsToSign.folder = `purindo/${folderName}`
+  let publicIdName = fileName
+  if (fileName) {
+    // Remove file extension from the name for public_id
+    publicIdName = fileName.replace(/\.[^/.]+$/, "")
   }
 
-  if (fileName) {
-    paramsToSign.public_id = `purindo/${folderName}/${fileName}`
+  if (publicIdName) {
+    // When we have a custom filename, use public_id with full path
+    paramsToSign.public_id = `purindo/${folderName}/${publicIdName}`
+  } else if (folderName) {
+    // When no custom filename, use folder parameter and let Cloudinary generate the name
+    paramsToSign.folder = `purindo/${folderName}`
   }
 
   // Generate signature
@@ -66,12 +72,10 @@ export async function uploadToCloudinary(buffer: Buffer, folderName: string | nu
   formData.append("timestamp", timestamp)
   formData.append("signature", signature)
 
-  if (folderName) {
+  if (publicIdName) {
+    formData.append("public_id", `purindo/${folderName}/${publicIdName}`)
+  } else if (folderName) {
     formData.append("folder", `purindo/${folderName}`)
-  }
-
-  if (fileName) {
-    formData.append("public_id", `purindo/${folderName}/${fileName}`)
   }
 
   // Upload to Cloudinary
