@@ -52,6 +52,10 @@ export async function uploadToCloudinary(buffer: Buffer, folderName: string | nu
     paramsToSign.folder = `purindo/${folderName}`
   }
 
+  if (fileName) {
+    paramsToSign.public_id = `purindo/${folderName}/${fileName}`
+  }
+
   // Generate signature
   const signature = await generateSignature(paramsToSign)
 
