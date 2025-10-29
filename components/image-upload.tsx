@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils"
 
 interface ImageUploadProps {
   folderId: string | null
+  folderName: string | null
   onUploadComplete: () => void
 }
 
@@ -19,7 +20,7 @@ interface UploadingFile {
   preview: string
 }
 
-export function ImageUpload({ folderId, onUploadComplete }: ImageUploadProps) {
+export function ImageUpload({ folderId, folderName, onUploadComplete }: ImageUploadProps) {
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([])
   const [isUploading, setIsUploading] = useState(false)
 
@@ -29,6 +30,11 @@ export function ImageUpload({ folderId, onUploadComplete }: ImageUploadProps) {
     if (folderId) {
       formData.append("folderId", folderId)
     }
+    if (folderName) {
+      formData.append("folderName", folderName)
+    }
+
+    console.log("[v0] Uploading file:", file.name, "to folder:", folderName)
 
     const response = await fetch("/api/cloudinary/upload", {
       method: "POST",
@@ -37,10 +43,13 @@ export function ImageUpload({ folderId, onUploadComplete }: ImageUploadProps) {
 
     if (!response.ok) {
       const error = await response.json()
+      console.error("[v0] Upload failed:", error)
       throw new Error(error.error || "Upload failed")
     }
 
-    return response.json()
+    const result = await response.json()
+    console.log("[v0] Upload successful:", result)
+    return result
   }
 
   const onDrop = useCallback(
@@ -49,7 +58,6 @@ export function ImageUpload({ folderId, onUploadComplete }: ImageUploadProps) {
 
       setIsUploading(true)
 
-      // Create preview URLs for all files
       const filesWithPreviews = acceptedFiles.map((file) => ({
         file,
         progress: 0,
@@ -59,37 +67,32 @@ export function ImageUpload({ folderId, onUploadComplete }: ImageUploadProps) {
       setUploadingFiles(filesWithPreviews)
 
       try {
-        // Upload files sequentially with progress updates
         for (let i = 0; i < filesWithPreviews.length; i++) {
           const fileData = filesWithPreviews[i]
 
-          // Update progress to show starting
           setUploadingFiles((prev) => prev.map((f, idx) => (idx === i ? { ...f, progress: 10 } : f)))
 
           await uploadFile(fileData.file)
 
-          // Update progress to complete
           setUploadingFiles((prev) => prev.map((f, idx) => (idx === i ? { ...f, progress: 100 } : f)))
         }
 
         toast.success(`Successfully uploaded ${acceptedFiles.length} image${acceptedFiles.length > 1 ? "s" : ""}`)
         onUploadComplete()
 
-        // Clear uploading files after a short delay
         setTimeout(() => {
           filesWithPreviews.forEach((f) => URL.revokeObjectURL(f.preview))
           setUploadingFiles([])
         }, 1000)
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Failed to upload images")
-        // Clean up preview URLs
         filesWithPreviews.forEach((f) => URL.revokeObjectURL(f.preview))
         setUploadingFiles([])
       } finally {
         setIsUploading(false)
       }
     },
-    [folderId, onUploadComplete],
+    [folderId, folderName, onUploadComplete],
   )
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({

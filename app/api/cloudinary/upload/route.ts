@@ -1,41 +1,46 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { uploadToCloudinary } from "@/lib/cloudinary"
-import { addImage, getFolder } from "@/lib/storage"
+import { addImage } from "@/lib/storage"
 
 export async function POST(request: NextRequest) {
   try {
+    console.log("[v0] Upload API called")
+
     const formData = await request.formData()
     const file = formData.get("file") as File
     const folderId = formData.get("folderId") as string | null
+    const folderName = formData.get("folderName") as string | null
+
+    console.log("[v0] Upload params:", { fileName: file?.name, folderId, folderName })
 
     if (!file) {
+      console.error("[v0] No file provided")
       return NextResponse.json({ error: "No file provided" }, { status: 400 })
-    }
-
-    let folderName: string | null = null
-    if (folderId) {
-      const folder = getFolder(folderId)
-      if (!folder) {
-        return NextResponse.json({ error: "Folder not found" }, { status: 404 })
-      }
-      folderName = folder.name
     }
 
     // Convert file to buffer
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
 
+    console.log("[v0] Uploading to Cloudinary...")
     const result = await uploadToCloudinary(buffer, folderName)
+    console.log("[v0] Cloudinary upload successful:", result.publicId)
 
     result.folderId = folderId || ""
+
+    console.log("[v0] Saving to localStorage...")
     addImage(result)
+    console.log("[v0] Image saved to localStorage")
 
     return NextResponse.json({
       success: true,
       image: result,
     })
   } catch (error) {
-    console.error("Upload error:", error)
-    return NextResponse.json({ error: "Failed to upload image" }, { status: 500 })
+    console.error("[v0] Upload error:", error)
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to upload image" },
+      { status: 500 },
+    )
   }
 }

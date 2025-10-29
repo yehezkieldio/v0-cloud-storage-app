@@ -77,11 +77,24 @@ export function getImagesByFolder(folderId: string): Image[] {
 }
 
 export function addImage(image: Image): void {
-  if (typeof window === "undefined") return
-  const images = getImages()
-  images.push(image)
-  localStorage.setItem(IMAGES_KEY, JSON.stringify(images))
-  updateFolderImageCount(image.folderId)
+  if (typeof window === "undefined") {
+    console.error("[v0] Cannot add image: localStorage not available on server")
+    return
+  }
+  try {
+    console.log("[v0] Adding image to localStorage:", image.id)
+    const images = getImages()
+    images.push(image)
+    localStorage.setItem(IMAGES_KEY, JSON.stringify(images))
+    console.log("[v0] Image added successfully, total images:", images.length)
+
+    if (image.folderId) {
+      updateFolderImageCount(image.folderId)
+    }
+  } catch (error) {
+    console.error("[v0] Failed to add image to localStorage:", error)
+    throw error
+  }
 }
 
 export function deleteImage(id: string): void {

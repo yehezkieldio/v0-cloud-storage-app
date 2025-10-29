@@ -97,6 +97,7 @@ export default function HomePage() {
           <main className="flex flex-1 flex-col gap-6 p-6">
             <ImageUpload
               folderId={selectedFolderId}
+              folderName={selectedFolder?.name || null}
               onUploadComplete={() => {
                 loadImages()
                 loadFolders()
