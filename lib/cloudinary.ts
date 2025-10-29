@@ -172,34 +172,27 @@ export async function renameImageOnCloudinary(
 export async function deleteFolderOnCloudinary(folderPath: string): Promise<void> {
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME
   const apiKey = process.env.CLOUDINARY_API_KEY
+  const apiSecret = process.env.CLOUDINARY_API_SECRET
 
-  if (!cloudName || !apiKey) {
+  if (!cloudName || !apiKey || !apiSecret) {
     throw new Error("Cloudinary credentials not configured")
   }
 
-  const timestamp = Math.round(Date.now() / 1000).toString()
-  const paramsToSign = {
-    prefix: folderPath,
-    timestamp,
-  }
+  // Use Basic Auth for Admin API
+  const auth = btoa(`${apiKey}:${apiSecret}`)
 
-  const signature = await generateSignature(paramsToSign)
-
-  const formData = new FormData()
-  formData.append("prefix", folderPath)
-  formData.append("api_key", apiKey)
-  formData.append("timestamp", timestamp)
-  formData.append("signature", signature)
-
-  const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/resources/image/upload`, {
+  // Delete folder using Admin API
+  const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/folders/purindo/${folderPath}`, {
     method: "DELETE",
-    body: formData,
+    headers: {
+      Authorization: `Basic ${auth}`,
+    },
   })
 
   if (!response.ok) {
     const error = await response.text()
     console.warn("[v0] Failed to delete folder on Cloudinary:", error)
-    // Don't throw error as folder might already be empty
+    // Don't throw error as folder might not exist or already be deleted
   }
 }
 
