@@ -7,6 +7,7 @@ import { UploadCloudIcon, XIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
+import { addImage } from "@/lib/storage"
 
 interface ImageUploadProps {
   folderId: string | null
@@ -49,6 +50,13 @@ export function ImageUpload({ folderId, folderName, onUploadComplete }: ImageUpl
 
     const result = await response.json()
     console.log("[v0] Upload successful:", result)
+
+    if (result.success && result.image) {
+      console.log("[v0] Saving image to localStorage:", result.image)
+      addImage(result.image)
+      console.log("[v0] Image saved to localStorage")
+    }
+
     return result
   }
 

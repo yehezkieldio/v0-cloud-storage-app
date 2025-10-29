@@ -108,3 +108,23 @@ export function deleteImage(id: string): void {
     updateFolderImageCount(image.folderId)
   }
 }
+
+// Sync functions to replace localStorage with Cloudinary data
+export function syncFolders(folders: Folder[]): void {
+  if (typeof window === "undefined") return
+  localStorage.setItem(FOLDERS_KEY, JSON.stringify(folders))
+  console.log("[v0] Synced", folders.length, "folders to localStorage")
+}
+
+export function syncImages(images: Image[]): void {
+  if (typeof window === "undefined") return
+  localStorage.setItem(IMAGES_KEY, JSON.stringify(images))
+  console.log("[v0] Synced", images.length, "images to localStorage")
+}
+
+export function hasLocalData(): boolean {
+  if (typeof window === "undefined") return false
+  const folders = localStorage.getItem(FOLDERS_KEY)
+  const images = localStorage.getItem(IMAGES_KEY)
+  return !!(folders || images)
+}

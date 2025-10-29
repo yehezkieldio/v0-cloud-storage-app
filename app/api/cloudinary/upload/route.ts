@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { uploadToCloudinary } from "@/lib/cloudinary"
-import { addImage } from "@/lib/storage"
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,10 +26,6 @@ export async function POST(request: NextRequest) {
     console.log("[v0] Cloudinary upload successful:", result.publicId)
 
     result.folderId = folderId || ""
-
-    console.log("[v0] Saving to localStorage...")
-    addImage(result)
-    console.log("[v0] Image saved to localStorage")
 
     return NextResponse.json({
       success: true,
