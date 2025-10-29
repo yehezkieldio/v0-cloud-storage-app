@@ -1,5 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { renameImageOnCloudinary } from "@/lib/cloudinary"
+import {
+  renameImageOnCloudinary,
+  deleteFolderOnCloudinary,
+  getThumbnailUrl,
+  getOptimizedImageUrl,
+} from "@/lib/cloudinary"
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,12 +38,11 @@ export async function POST(request: NextRequest) {
 
         const result = await renameImageOnCloudinary(publicId, newPublicId)
 
-        // Update image with new URLs
         renamedImages.push({
           ...image,
           publicId: result.public_id,
-          url: result.secure_url,
-          thumbnailUrl: `https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/w_400,h_400,c_fill,q_auto,f_auto/${result.public_id}`,
+          url: getOptimizedImageUrl(result.public_id),
+          thumbnailUrl: getThumbnailUrl(result.public_id),
         })
 
         console.log("[v0] Image renamed successfully:", result.public_id)
@@ -47,6 +51,15 @@ export async function POST(request: NextRequest) {
         // Keep the original image if rename fails
         renamedImages.push(image)
       }
+    }
+
+    try {
+      console.log("[v0] Deleting old folder on Cloudinary:", oldFolderName)
+      await deleteFolderOnCloudinary(`purindo/${oldFolderName}`)
+      console.log("[v0] Old folder deleted successfully")
+    } catch (error) {
+      console.warn("[v0] Failed to delete old folder:", error)
+      // Continue even if folder deletion fails
     }
 
     console.log("[v0] Folder rename complete, renamed", renamedImages.length, "images")

@@ -169,6 +169,40 @@ export async function renameImageOnCloudinary(
   return result
 }
 
+export async function deleteFolderOnCloudinary(folderPath: string): Promise<void> {
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME
+  const apiKey = process.env.CLOUDINARY_API_KEY
+
+  if (!cloudName || !apiKey) {
+    throw new Error("Cloudinary credentials not configured")
+  }
+
+  const timestamp = Math.round(Date.now() / 1000).toString()
+  const paramsToSign = {
+    prefix: folderPath,
+    timestamp,
+  }
+
+  const signature = await generateSignature(paramsToSign)
+
+  const formData = new FormData()
+  formData.append("prefix", folderPath)
+  formData.append("api_key", apiKey)
+  formData.append("timestamp", timestamp)
+  formData.append("signature", signature)
+
+  const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/resources/image/upload`, {
+    method: "DELETE",
+    body: formData,
+  })
+
+  if (!response.ok) {
+    const error = await response.text()
+    console.warn("[v0] Failed to delete folder on Cloudinary:", error)
+    // Don't throw error as folder might already be empty
+  }
+}
+
 export function getOptimizedImageUrl(publicId: string, width?: number): string {
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME
   const transformations = width ? `w_${width},c_limit,q_auto,f_auto` : "q_auto,f_auto"
