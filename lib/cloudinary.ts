@@ -54,12 +54,16 @@ export async function uploadToCloudinary(buffer: Buffer, folderName: string | nu
     publicIdName = fileName.replace(/\.[^/.]+$/, "")
   }
 
+  // Determine the full path based on whether we have a subfolder
+  const isRootFolder = !folderName || folderName === "purindo"
+  const fullPath = isRootFolder ? "purindo" : `purindo/${folderName}`
+
   if (publicIdName) {
     // When we have a custom filename, use public_id with full path
-    paramsToSign.public_id = `purindo/${folderName}/${publicIdName}`
-  } else if (folderName) {
+    paramsToSign.public_id = `${fullPath}/${publicIdName}`
+  } else {
     // When no custom filename, use folder parameter and let Cloudinary generate the name
-    paramsToSign.folder = `purindo/${folderName}`
+    paramsToSign.folder = fullPath
   }
 
   // Generate signature
@@ -73,9 +77,9 @@ export async function uploadToCloudinary(buffer: Buffer, folderName: string | nu
   formData.append("signature", signature)
 
   if (publicIdName) {
-    formData.append("public_id", `purindo/${folderName}/${publicIdName}`)
-  } else if (folderName) {
-    formData.append("folder", `purindo/${folderName}`)
+    formData.append("public_id", `${fullPath}/${publicIdName}`)
+  } else {
+    formData.append("folder", fullPath)
   }
 
   // Upload to Cloudinary
@@ -90,6 +94,8 @@ export async function uploadToCloudinary(buffer: Buffer, folderName: string | nu
   }
 
   const result: CloudinaryUploadResponse = await response.json()
+
+  console.log("[v0] Cloudinary upload successful:", result.public_id)
 
   const imageName = fileName || result.original_filename || "Untitled"
   // Remove file extension from the name for cleaner display
