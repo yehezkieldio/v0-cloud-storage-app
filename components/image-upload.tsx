@@ -3,11 +3,13 @@
 import { useState, useCallback } from "react"
 import { useDropzone } from "react-dropzone"
 import { toast } from "sonner"
-import { UploadCloudIcon, XIcon } from "lucide-react"
+import { UploadCloudIcon, XIcon, SettingsIcon, ZapIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 import { addImage } from "@/lib/storage"
+import { compressImage, COMPRESSION_PRESETS, formatFileSize, type CompressionResult } from "@/lib/compression"
+import { CompressionSettingsDialog } from "@/components/compression-settings-dialog"
 
 interface ImageUploadProps {
   folderId: string | null
@@ -19,13 +21,17 @@ interface UploadingFile {
   file: File
   progress: number
   preview: string
+  compressionResult?: CompressionResult
 }
 
 export function ImageUpload({ folderId, folderName, onUploadComplete }: ImageUploadProps) {
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([])
   const [isUploading, setIsUploading] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
+  const [compressionPreset, setCompressionPreset] = useState<keyof typeof COMPRESSION_PRESETS>("balanced")
+  const [useProgressiveCompression, setUseProgressiveCompression] = useState(true)
 
-  const uploadFile = async (file: File) => {
+  const uploadFile = async (file: File, compressionResult?: CompressionResult) => {
     const formData = new FormData()
     formData.append("file", file)
     if (folderId) {
@@ -78,14 +84,32 @@ export function ImageUpload({ folderId, folderName, onUploadComplete }: ImageUpl
         for (let i = 0; i < filesWithPreviews.length; i++) {
           const fileData = filesWithPreviews[i]
 
-          setUploadingFiles((prev) => prev.map((f, idx) => (idx === i ? { ...f, progress: 10 } : f)))
+          setUploadingFiles((prev) => prev.map((f, idx) => (idx === i ? { ...f, progress: 5 } : f)))
 
-          await uploadFile(fileData.file)
+          console.log("[v0] Starting compression for:", fileData.file.name)
+          const compressionResult = await compressImage(fileData.file, compressionPreset, useProgressiveCompression)
+
+          // Update with compression result
+          setUploadingFiles((prev) => prev.map((f, idx) => (idx === i ? { ...f, progress: 10, compressionResult } : f)))
+
+          // Upload compressed file
+          await uploadFile(compressionResult.compressedFile, compressionResult)
 
           setUploadingFiles((prev) => prev.map((f, idx) => (idx === i ? { ...f, progress: 100 } : f)))
         }
 
-        toast.success(`Successfully uploaded ${acceptedFiles.length} image${acceptedFiles.length > 1 ? "s" : ""}`)
+        // Calculate total savings
+        const totalOriginal = filesWithPreviews.reduce((sum, f) => sum + (f.compressionResult?.originalSize || 0), 0)
+        const totalCompressed = filesWithPreviews.reduce(
+          (sum, f) => sum + (f.compressionResult?.compressedSize || 0),
+          0,
+        )
+        const totalSaved = totalOriginal - totalCompressed
+        const savedPercentage = ((totalSaved / totalOriginal) * 100).toFixed(1)
+
+        toast.success(
+          `Successfully uploaded ${acceptedFiles.length} image${acceptedFiles.length > 1 ? "s" : ""}. Saved ${formatFileSize(totalSaved)} (${savedPercentage}% compression)`,
+        )
         onUploadComplete()
 
         setTimeout(() => {
@@ -100,7 +124,7 @@ export function ImageUpload({ folderId, folderName, onUploadComplete }: ImageUpl
         setIsUploading(false)
       }
     },
-    [folderId, folderName, onUploadComplete],
+    [folderId, folderName, onUploadComplete, compressionPreset, useProgressiveCompression],
   )
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -122,6 +146,19 @@ export function ImageUpload({ folderId, folderName, onUploadComplete }: ImageUpl
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <ZapIcon className="size-4" />
+          <span>
+            Compression: {useProgressiveCompression ? "Progressive" : COMPRESSION_PRESETS[compressionPreset].name}
+          </span>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => setShowSettings(true)} disabled={isUploading}>
+          <SettingsIcon className="size-4 mr-2" />
+          Settings
+        </Button>
+      </div>
+
       <div
         {...getRootProps()}
         className={cn(
@@ -156,6 +193,13 @@ export function ImageUpload({ folderId, folderName, onUploadComplete }: ImageUpl
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{file.file.name}</p>
+                  {file.compressionResult && (
+                    <p className="text-xs text-muted-foreground">
+                      {formatFileSize(file.compressionResult.originalSize)} →{" "}
+                      {formatFileSize(file.compressionResult.compressedSize)} (
+                      {file.compressionResult.compressionRatio.toFixed(1)}% saved)
+                    </p>
+                  )}
                   <Progress value={file.progress} className="h-1 mt-1" />
                 </div>
                 {!isUploading && (
@@ -168,6 +212,18 @@ export function ImageUpload({ folderId, folderName, onUploadComplete }: ImageUpl
           </div>
         </div>
       )}
+
+      <CompressionSettingsDialog
+        open={showSettings}
+        onOpenChange={setShowSettings}
+        currentPreset={compressionPreset}
+        useProgressiveCompression={useProgressiveCompression}
+        onSettingsChange={(preset, progressive) => {
+          setCompressionPreset(preset)
+          setUseProgressiveCompression(progressive)
+          toast.success("Compression settings updated")
+        }}
+      />
     </div>
   )
 }
