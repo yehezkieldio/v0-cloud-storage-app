@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
 
     try {
       console.log("[v0] Deleting old folder on Cloudinary:", oldFolderName)
-      await deleteFolderOnCloudinary(`purindo/${oldFolderName}`)
+      await deleteFolderOnCloudinary(oldFolderName)
       console.log("[v0] Old folder deleted successfully")
     } catch (error) {
       console.warn("[v0] Failed to delete old folder:", error)
