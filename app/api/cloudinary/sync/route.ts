@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import type { Folder, Image } from "@/lib/types"
+import crypto from "crypto"
 
 interface CloudinaryResource {
   public_id: string
@@ -34,7 +35,7 @@ export async function GET() {
 
     console.log("[v0] Fetching resources from Cloudinary...")
     const resourcesResponse = await fetch(
-      `https://api.cloudinary.com/v1_1/${cloudName}/resources/image?prefix=purindo/&max_results=500`,
+      `https://api.cloudinary.com/v1_1/${cloudName}/resources/image?type=upload&prefix=purindo/&max_results=500`,
       {
         headers: {
           Authorization: `Basic ${auth}`,
