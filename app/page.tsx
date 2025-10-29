@@ -7,9 +7,10 @@ import { ImageUpload } from "@/components/image-upload"
 import { ImageGrid } from "@/components/image-grid"
 import { ImageViewer } from "@/components/image-viewer"
 import { Separator } from "@/components/ui/separator"
-import { Loader2 } from "lucide-react"
+import { RefreshCwIcon } from "lucide-react"
 import type { Folder, Image } from "@/lib/types"
-import { getFolders, getImages, getImagesByFolder, syncFolders, syncImages, hasLocalData } from "@/lib/storage"
+import { db } from "@/lib/db"
+import { Button } from "@/components/ui/button"
 
 export default function HomePage() {
   const [folders, setFolders] = useState<Folder[]>([])
@@ -19,84 +20,70 @@ export default function HomePage() {
   const [isLoadingFolders, setIsLoadingFolders] = useState(true)
   const [isLoadingImages, setIsLoadingImages] = useState(true)
   const [viewerOpen, setViewerOpen] = useState(false)
-  const [isSyncing, setIsSyncing] = useState(false)
 
-  const syncWithCloudinary = async () => {
-    try {
-      setIsSyncing(true)
-      console.log("[v0] Starting sync with Cloudinary...")
-
-      const response = await fetch("/api/cloudinary/sync")
-      if (!response.ok) {
-        throw new Error("Failed to sync with Cloudinary")
-      }
-
-      const data = await response.json()
-      console.log("[v0] Sync response:", data)
-
-      // Update localStorage with synced data
-      if (data.folders && data.images) {
-        syncFolders(data.folders)
-        syncImages(data.images)
-        setFolders(data.folders)
-        setImages(data.images)
-        console.log("[v0] Sync complete!")
-      }
-    } catch (error) {
-      console.error("[v0] Sync failed:", error)
-    } finally {
-      setIsSyncing(false)
-    }
-  }
-
-  const loadFolders = () => {
+  const loadFolders = async () => {
     setIsLoadingFolders(true)
     try {
-      const loadedFolders = getFolders()
-      setFolders(loadedFolders)
+      const response = await fetch("/api/folders")
+      if (!response.ok) throw new Error("Failed to load folders")
+
+      const data = await response.json()
+      const dbFolders = data.folders
+
+      // Convert to UI format with image counts
+      const allImages = await db.images.findAll()
+      const foldersWithCounts: Folder[] = dbFolders.map((f: any) => ({
+        id: f.id,
+        name: f.name,
+        imageCount: allImages.filter((img) => img.folder_id === f.id).length,
+      }))
+
+      setFolders(foldersWithCounts)
     } catch (error) {
-      console.error("Failed to load folders:", error)
+      console.error("[v0] Failed to load folders:", error)
     } finally {
       setIsLoadingFolders(false)
     }
   }
 
-  const loadImages = () => {
+  const loadImages = async () => {
     setIsLoadingImages(true)
     try {
-      const loadedImages = selectedFolderId ? getImagesByFolder(selectedFolderId) : getImages()
-      setImages(loadedImages)
+      let dbImages
+      if (selectedFolderId) {
+        const response = await fetch(`/api/folders/${selectedFolderId}/images`)
+        if (!response.ok) throw new Error("Failed to load images")
+        const data = await response.json()
+        dbImages = data.images
+      } else {
+        dbImages = await db.images.findAll()
+        dbImages = dbImages.map((img) => ({
+          id: img.id,
+          name: img.name,
+          url: img.file_path,
+          thumbnailUrl: img.thumbnail_path,
+          folderId: img.folder_id,
+          size: img.file_size,
+          width: img.width,
+          height: img.height,
+        }))
+      }
+
+      setImages(dbImages)
     } catch (error) {
-      console.error("Failed to load images:", error)
+      console.error("[v0] Failed to load images:", error)
     } finally {
       setIsLoadingImages(false)
     }
   }
 
   useEffect(() => {
-    const initializeApp = async () => {
-      // Check if we have local data
-      const hasData = hasLocalData()
-
-      if (!hasData) {
-        // No local data, sync from Cloudinary first
-        console.log("[v0] No local data found, syncing from Cloudinary...")
-        await syncWithCloudinary()
-      } else {
-        // Load from localStorage
-        loadFolders()
-        loadImages()
-      }
-    }
-
-    initializeApp()
+    loadFolders()
+    loadImages()
   }, [])
 
-  // Reload images when folder selection changes
   useEffect(() => {
-    if (!isSyncing) {
-      loadImages()
-    }
+    loadImages()
   }, [selectedFolderId])
 
   const handleImageClick = (image: Image) => {
@@ -109,18 +96,6 @@ export default function HomePage() {
   }
 
   const selectedFolder = folders.find((f) => f.id === selectedFolderId)
-
-  if (isSyncing) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-lg font-medium">Syncing with Cloudinary...</p>
-          <p className="text-sm text-muted-foreground">Loading your folders and images</p>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <SidebarProvider>
@@ -149,13 +124,17 @@ export default function HomePage() {
                 {images.length} image{images.length !== 1 ? "s" : ""}
               </p>
             </div>
-            <button
-              onClick={syncWithCloudinary}
-              disabled={isSyncing}
-              className="text-sm text-muted-foreground hover:text-foreground"
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                loadFolders()
+                loadImages()
+              }}
             >
-              Sync
-            </button>
+              <RefreshCwIcon className="size-4 mr-2" />
+              Refresh
+            </Button>
           </header>
 
           <main className="flex flex-1 flex-col gap-6 p-6">

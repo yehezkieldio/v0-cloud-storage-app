@@ -33,10 +33,8 @@ export function ImageGrid({ images, isLoading, onImageClick, onImageDeleted }: I
     setDeletingIds((prev) => new Set(prev).add(image.id))
 
     try {
-      const response = await fetch("/api/cloudinary/delete", {
+      const response = await fetch(`/api/images/${image.id}`, {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ publicId: image.publicId }),
       })
 
       if (!response.ok) {

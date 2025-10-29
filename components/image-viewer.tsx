@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { XIcon, DownloadIcon, ExternalLinkIcon } from "lucide-react"
 import type { Image } from "@/lib/types"
+import { getFileUrl } from "@/lib/file-storage"
 
 interface ImageViewerProps {
   image: Image | null
@@ -14,9 +15,11 @@ interface ImageViewerProps {
 export function ImageViewer({ image, open, onOpenChange }: ImageViewerProps) {
   if (!image) return null
 
+  const imageUrl = getFileUrl(image.url)
+
   const handleDownload = async () => {
     try {
-      const response = await fetch(image.url)
+      const response = await fetch(imageUrl)
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement("a")
@@ -33,7 +36,7 @@ export function ImageViewer({ image, open, onOpenChange }: ImageViewerProps) {
   }
 
   const handleOpenInNewTab = () => {
-    window.open(image.url, "_blank")
+    window.open(imageUrl, "_blank")
   }
 
   return (
@@ -65,11 +68,7 @@ export function ImageViewer({ image, open, onOpenChange }: ImageViewerProps) {
 
         {/* Image */}
         <div className="relative bg-muted flex items-center justify-center p-8 max-h-[80vh] overflow-auto">
-          <img
-            src={image.url || "/placeholder.svg"}
-            alt={image.name}
-            className="max-w-full max-h-full object-contain"
-          />
+          <img src={imageUrl || "/placeholder.svg"} alt={image.name} className="max-w-full max-h-full object-contain" />
         </div>
       </DialogContent>
     </Dialog>

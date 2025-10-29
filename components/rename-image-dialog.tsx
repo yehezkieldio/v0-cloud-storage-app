@@ -44,7 +44,7 @@ export function RenameImageDialog({ open, onOpenChange, image, onSuccess }: Rena
 
     setIsRenaming(true)
     try {
-      renameImage(image.id, imageName.trim())
+      await renameImage(image.id, imageName.trim())
       toast.success("Image renamed successfully")
       onOpenChange(false)
       onSuccess()

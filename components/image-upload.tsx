@@ -44,7 +44,7 @@ export function ImageUpload({ folderId, folderName, onUploadComplete }: ImageUpl
 
     console.log("[v0] Uploading file:", file.name, "to folder:", targetFolderName)
 
-    const response = await fetch("/api/cloudinary/upload", {
+    const response = await fetch("/api/images/upload", {
       method: "POST",
       body: formData,
     })
