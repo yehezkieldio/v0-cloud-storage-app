@@ -34,14 +34,15 @@ export function ImageUpload({ folderId, folderName, onUploadComplete }: ImageUpl
   const uploadFile = async (file: File, compressionResult?: CompressionResult) => {
     const formData = new FormData()
     formData.append("file", file)
-    if (folderId) {
-      formData.append("folderId", folderId)
-    }
-    if (folderName) {
-      formData.append("folderName", folderName)
-    }
 
-    console.log("[v0] Uploading file:", file.name, "to folder:", folderName)
+    const targetFolderId = folderId || "root"
+    const targetFolderName = folderName || "purindo"
+
+    formData.append("folderId", targetFolderId)
+    formData.append("folderName", targetFolderName)
+    formData.append("fileName", compressionResult?.originalFile.name || file.name)
+
+    console.log("[v0] Uploading file:", file.name, "to folder:", targetFolderName)
 
     const response = await fetch("/api/cloudinary/upload", {
       method: "POST",
@@ -174,6 +175,9 @@ export function ImageUpload({ folderId, folderName, onUploadComplete }: ImageUpl
             <p className="text-sm font-medium">{isDragActive ? "Drop images here" : "Drag & drop images here"}</p>
             <p className="text-xs text-muted-foreground mt-1">or click to browse</p>
           </div>
+          <p className="text-xs text-muted-foreground">
+            {folderName ? `Uploading to: ${folderName}` : "Uploading to: purindo (root)"}
+          </p>
           <p className="text-xs text-muted-foreground">Supports: PNG, JPG, GIF, WebP, SVG</p>
         </div>
       </div>

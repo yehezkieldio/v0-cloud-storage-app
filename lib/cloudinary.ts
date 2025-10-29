@@ -31,7 +31,7 @@ async function generateSignature(paramsToSign: Record<string, string>): Promise<
   return hashHex
 }
 
-export async function uploadToCloudinary(buffer: Buffer, folderName: string | null): Promise<Image> {
+export async function uploadToCloudinary(buffer: Buffer, folderName: string | null, fileName?: string): Promise<Image> {
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME
   const apiKey = process.env.CLOUDINARY_API_KEY
 
@@ -66,6 +66,10 @@ export async function uploadToCloudinary(buffer: Buffer, folderName: string | nu
     formData.append("folder", `purindo/${folderName}`)
   }
 
+  if (fileName) {
+    formData.append("public_id", `purindo/${folderName}/${fileName}`)
+  }
+
   // Upload to Cloudinary
   const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
     method: "POST",
@@ -79,13 +83,17 @@ export async function uploadToCloudinary(buffer: Buffer, folderName: string | nu
 
   const result: CloudinaryUploadResponse = await response.json()
 
+  const imageName = fileName || result.original_filename || "Untitled"
+  // Remove file extension from the name for cleaner display
+  const nameWithoutExtension = imageName.replace(/\.[^/.]+$/, "")
+
   const image: Image = {
     id: crypto.randomUUID(),
     url: result.secure_url,
     thumbnailUrl: getThumbnailUrl(result.public_id),
     publicId: result.public_id,
     folderId: "", // Will be set by caller
-    name: result.original_filename || "Untitled",
+    name: nameWithoutExtension,
     size: result.bytes,
     width: result.width,
     height: result.height,

@@ -9,8 +9,16 @@ export async function POST(request: NextRequest) {
     const file = formData.get("file") as File
     const folderId = formData.get("folderId") as string | null
     const folderName = formData.get("folderName") as string | null
+    const fileName = formData.get("fileName") as string | null
 
-    console.log("[v0] Upload params:", { fileName: file?.name, folderId, folderName })
+    const targetFolderName = folderName || "purindo"
+    const targetFolderId = folderId || "root"
+
+    console.log("[v0] Upload params:", {
+      fileName: fileName || file?.name,
+      folderId: targetFolderId,
+      folderName: targetFolderName,
+    })
 
     if (!file) {
       console.error("[v0] No file provided")
@@ -22,10 +30,10 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(bytes)
 
     console.log("[v0] Uploading to Cloudinary...")
-    const result = await uploadToCloudinary(buffer, folderName)
+    const result = await uploadToCloudinary(buffer, targetFolderName, fileName || file.name)
     console.log("[v0] Cloudinary upload successful:", result.publicId)
 
-    result.folderId = folderId || ""
+    result.folderId = targetFolderId
 
     return NextResponse.json({
       success: true,

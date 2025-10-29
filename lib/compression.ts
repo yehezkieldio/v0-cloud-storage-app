@@ -121,6 +121,7 @@ async function getImageDimensions(file: File): Promise<{ width: number; height: 
 
 export interface CompressionResult {
   compressedFile: File
+  originalFile: File // Added original file reference to preserve filename
   originalSize: number
   compressedSize: number
   compressionRatio: number
@@ -186,6 +187,7 @@ export async function compressImage(
 
   return {
     compressedFile,
+    originalFile: file, // Include original file reference
     originalSize,
     compressedSize,
     compressionRatio,
