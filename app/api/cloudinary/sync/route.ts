@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import type { Folder, Image } from "@/lib/types"
-import crypto from "crypto"
+import { globalThis } from "global"
 
 interface CloudinaryResource {
   public_id: string
@@ -25,17 +25,19 @@ export async function GET() {
     const apiKey = process.env.CLOUDINARY_API_KEY
     const apiSecret = process.env.CLOUDINARY_API_SECRET
 
+    console.log("[v0] Cloudinary config:", { cloudName, hasApiKey: !!apiKey, hasApiSecret: !!apiSecret })
+
     if (!cloudName || !apiKey || !apiSecret) {
+      console.error("[v0] Missing Cloudinary credentials")
       return NextResponse.json({ error: "Cloudinary credentials not configured" }, { status: 500 })
     }
 
     // Fetch all resources from the purindo folder
-    const timestamp = Math.round(Date.now() / 1000).toString()
     const auth = Buffer.from(`${apiKey}:${apiSecret}`).toString("base64")
 
     console.log("[v0] Fetching resources from Cloudinary...")
     const resourcesResponse = await fetch(
-      `https://api.cloudinary.com/v1_1/${cloudName}/resources/image?type=upload&prefix=purindo/&max_results=500`,
+      `https://api.cloudinary.com/${cloudName}/resources/image?type=upload&prefix=purindo/&max_results=500`,
       {
         headers: {
           Authorization: `Basic ${auth}`,
@@ -43,10 +45,12 @@ export async function GET() {
       },
     )
 
+    console.log("[v0] Cloudinary response status:", resourcesResponse.status)
+
     if (!resourcesResponse.ok) {
       const error = await resourcesResponse.text()
       console.error("[v0] Failed to fetch resources:", error)
-      return NextResponse.json({ error: "Failed to fetch resources from Cloudinary" }, { status: 500 })
+      return NextResponse.json({ error: `Failed to fetch resources: ${error}` }, { status: 500 })
     }
 
     const resourcesData = await resourcesResponse.json()
@@ -72,7 +76,7 @@ export async function GET() {
     // Create folder objects
     const folders: Folder[] = Array.from(folderSet).map((folderName) => {
       const folder: Folder = {
-        id: crypto.randomUUID(),
+        id: globalThis.crypto.randomUUID(),
         name: folderName,
         createdAt: new Date().toISOString(),
         imageCount: 0,
@@ -96,7 +100,7 @@ export async function GET() {
       }
 
       const image: Image = {
-        id: crypto.randomUUID(),
+        id: globalThis.crypto.randomUUID(),
         url: resource.secure_url,
         thumbnailUrl: getThumbnailUrl(cloudName, resource.public_id),
         publicId: resource.public_id,
@@ -116,7 +120,10 @@ export async function GET() {
     return NextResponse.json({ folders, images })
   } catch (error) {
     console.error("[v0] Sync error:", error)
-    return NextResponse.json({ error: "Failed to sync with Cloudinary" }, { status: 500 })
+    return NextResponse.json(
+      { error: `Failed to sync: ${error instanceof Error ? error.message : String(error)}` },
+      { status: 500 },
+    )
   }
 }
 
