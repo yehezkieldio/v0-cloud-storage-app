@@ -128,6 +128,47 @@ export async function deleteFromCloudinary(publicId: string): Promise<void> {
   }
 }
 
+export async function renameImageOnCloudinary(
+  oldPublicId: string,
+  newPublicId: string,
+): Promise<{ secure_url: string; public_id: string }> {
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME
+  const apiKey = process.env.CLOUDINARY_API_KEY
+
+  if (!cloudName || !apiKey) {
+    throw new Error("Cloudinary credentials not configured")
+  }
+
+  const timestamp = Math.round(Date.now() / 1000).toString()
+  const paramsToSign = {
+    from_public_id: oldPublicId,
+    to_public_id: newPublicId,
+    timestamp,
+  }
+
+  const signature = await generateSignature(paramsToSign)
+
+  const formData = new FormData()
+  formData.append("from_public_id", oldPublicId)
+  formData.append("to_public_id", newPublicId)
+  formData.append("api_key", apiKey)
+  formData.append("timestamp", timestamp)
+  formData.append("signature", signature)
+
+  const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/rename`, {
+    method: "POST",
+    body: formData,
+  })
+
+  if (!response.ok) {
+    const error = await response.text()
+    throw new Error(`Rename failed: ${error}`)
+  }
+
+  const result = await response.json()
+  return result
+}
+
 export function getOptimizedImageUrl(publicId: string, width?: number): string {
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME
   const transformations = width ? `w_${width},c_limit,q_auto,f_auto` : "q_auto,f_auto"

@@ -109,6 +109,17 @@ export function deleteImage(id: string): void {
   }
 }
 
+export function renameImage(id: string, newName: string): void {
+  if (typeof window === "undefined") return
+  const images = getImages()
+  const index = images.findIndex((img) => img.id === id)
+  if (index !== -1) {
+    images[index].name = newName
+    localStorage.setItem(IMAGES_KEY, JSON.stringify(images))
+    console.log("[v0] Image renamed successfully:", id, "->", newName)
+  }
+}
+
 // Sync functions to replace localStorage with Cloudinary data
 export function syncFolders(folders: Folder[]): void {
   if (typeof window === "undefined") return

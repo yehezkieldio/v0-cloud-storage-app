@@ -3,13 +3,14 @@
 import type React from "react"
 
 import { useState } from "react"
-import { ImageIcon, MoreVerticalIcon, DownloadIcon, Trash2Icon } from "lucide-react"
+import { ImageIcon, MoreVerticalIcon, DownloadIcon, Trash2Icon, PencilIcon } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { Image } from "@/lib/types"
 import { cn } from "@/lib/utils"
+import { RenameImageDialog } from "@/components/rename-image-dialog"
 
 interface ImageGridProps {
   images: Image[]
@@ -20,6 +21,7 @@ interface ImageGridProps {
 
 export function ImageGrid({ images, isLoading, onImageClick, onImageDeleted }: ImageGridProps) {
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set())
+  const [renameImage, setRenameImage] = useState<Image | null>(null)
 
   const handleDelete = async (image: Image, e: React.MouseEvent) => {
     e.stopPropagation()
@@ -74,6 +76,11 @@ export function ImageGrid({ images, isLoading, onImageClick, onImageDeleted }: I
     }
   }
 
+  const handleRename = (image: Image, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setRenameImage(image)
+  }
+
   if (isLoading) {
     return (
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
@@ -97,54 +104,69 @@ export function ImageGrid({ images, isLoading, onImageClick, onImageDeleted }: I
   }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-      {images.map((image) => (
-        <Card
-          key={image.id}
-          className={cn(
-            "group relative aspect-square p-0 overflow-hidden cursor-pointer transition-all hover:shadow-lg",
-            deletingIds.has(image.id) && "opacity-50 pointer-events-none",
-          )}
-          onClick={() => onImageClick(image)}
-        >
-          <img
-            src={image.thumbnailUrl || "/placeholder.svg"}
-            alt={image.name}
-            className="size-full object-cover"
-            loading="lazy"
-          />
+    <>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        {images.map((image) => (
+          <Card
+            key={image.id}
+            className={cn(
+              "group relative aspect-square p-0 overflow-hidden cursor-pointer transition-all hover:shadow-lg",
+              deletingIds.has(image.id) && "opacity-50 pointer-events-none",
+            )}
+            onClick={() => onImageClick(image)}
+          >
+            <img
+              src={image.thumbnailUrl || "/placeholder.svg"}
+              alt={image.name}
+              className="size-full object-cover"
+              loading="lazy"
+            />
 
-          {/* Overlay with actions */}
-          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                <Button size="icon" variant="secondary">
-                  <MoreVerticalIcon />
-                  <span className="sr-only">Image actions</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="center">
-                <DropdownMenuItem onClick={(e) => handleDownload(image, e)}>
-                  <DownloadIcon />
-                  Download
-                </DropdownMenuItem>
-                <DropdownMenuItem variant="destructive" onClick={(e) => handleDelete(image, e)}>
-                  <Trash2Icon />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+            {/* Overlay with actions */}
+            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                  <Button size="icon" variant="secondary">
+                    <MoreVerticalIcon />
+                    <span className="sr-only">Image actions</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="center">
+                  <DropdownMenuItem onClick={(e) => handleRename(image, e)}>
+                    <PencilIcon />
+                    Rename
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={(e) => handleDownload(image, e)}>
+                    <DownloadIcon />
+                    Download
+                  </DropdownMenuItem>
+                  <DropdownMenuItem variant="destructive" onClick={(e) => handleDelete(image, e)}>
+                    <Trash2Icon />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
 
-          {/* Image info overlay at bottom */}
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-            <p className="text-white text-xs font-medium truncate">{image.name}</p>
-            <p className="text-white/70 text-xs">
-              {image.width} × {image.height}
-            </p>
-          </div>
-        </Card>
-      ))}
-    </div>
+            {/* Image info overlay at bottom */}
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <p className="text-white text-xs font-medium truncate">{image.name}</p>
+              <p className="text-white/70 text-xs">
+                {image.width} × {image.height}
+              </p>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {renameImage && (
+        <RenameImageDialog
+          open={!!renameImage}
+          onOpenChange={(open) => !open && setRenameImage(null)}
+          image={renameImage}
+          onSuccess={onImageDeleted}
+        />
+      )}
+    </>
   )
 }

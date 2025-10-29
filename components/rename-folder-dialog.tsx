@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { Folder } from "@/lib/types"
-import { updateFolder } from "@/lib/storage"
+import { updateFolder, getImagesByFolder, getImages } from "@/lib/storage"
 
 interface RenameFolderDialogProps {
   open: boolean
@@ -44,11 +44,47 @@ export function RenameFolderDialog({ open, onOpenChange, folder, onSuccess }: Re
 
     setIsRenaming(true)
     try {
+      const images = await getImagesByFolder(folder.id)
+
+      if (images.length > 0) {
+        console.log("[v0] Renaming folder on Cloudinary with", images.length, "images")
+
+        // Call API to rename folder on Cloudinary
+        const response = await fetch("/api/cloudinary/rename-folder", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            oldFolderName: folder.name,
+            newFolderName: folderName.trim(),
+            images,
+          }),
+        })
+
+        if (!response.ok) {
+          throw new Error("Failed to rename folder on Cloudinary")
+        }
+
+        const result = await response.json()
+
+        // Update images in localStorage with new URLs
+        if (result.images) {
+          const allImages = getImages()
+          const updatedImages = allImages.map((img) => {
+            const renamedImage = result.images.find((ri: any) => ri.id === img.id)
+            return renamedImage || img
+          })
+          localStorage.setItem("cloud_storage_images", JSON.stringify(updatedImages))
+          console.log("[v0] Updated image URLs in localStorage")
+        }
+      }
+
+      // Update folder name in localStorage
       updateFolder(folder.id, folderName.trim())
       toast.success("Folder renamed successfully")
       onOpenChange(false)
       onSuccess()
     } catch (error) {
+      console.error("[v0] Rename folder error:", error)
       toast.error(error instanceof Error ? error.message : "Failed to rename folder")
     } finally {
       setIsRenaming(false)
