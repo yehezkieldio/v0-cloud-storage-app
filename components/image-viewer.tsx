@@ -1,6 +1,6 @@
 "use client"
 
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { XIcon, DownloadIcon, ExternalLinkIcon } from "lucide-react"
 import type { Image } from "@/lib/types"
@@ -42,7 +42,7 @@ export function ImageViewer({ image, open, onOpenChange }: ImageViewerProps) {
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <div className="flex-1 min-w-0">
-            <h2 className="text-lg font-semibold truncate">{image.name}</h2>
+            <DialogTitle className="text-lg font-semibold truncate">{image.name}</DialogTitle>
             <p className="text-sm text-muted-foreground">
               {image.width} × {image.height} • {(image.size / 1024).toFixed(2)} KB
             </p>
