@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button"
 import type { Folder } from "@/lib/types"
 import { AlertTriangleIcon } from "lucide-react"
+import { deleteFolder } from "@/lib/storage"
 
 interface DeleteFolderDialogProps {
   open: boolean
@@ -27,15 +28,7 @@ export function DeleteFolderDialog({ open, onOpenChange, folder, onSuccess }: De
   const handleDelete = async () => {
     setIsDeleting(true)
     try {
-      const response = await fetch(`/api/cloudinary/folders/${folder.id}`, {
-        method: "DELETE",
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || "Failed to delete folder")
-      }
-
+      deleteFolder(folder.id)
       toast.success("Folder deleted successfully")
       onOpenChange(false)
       onSuccess()
@@ -59,7 +52,7 @@ export function DeleteFolderDialog({ open, onOpenChange, folder, onSuccess }: De
             {folder.imageCount > 0 && (
               <span className="block mt-2 text-destructive">
                 This folder contains {folder.imageCount} image{folder.imageCount !== 1 ? "s" : ""}. All images will be
-                moved to the root folder.
+                deleted from localStorage.
               </span>
             )}
           </DialogDescription>

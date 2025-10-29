@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { Folder } from "@/lib/types"
+import { updateFolder } from "@/lib/storage"
 
 interface RenameFolderDialogProps {
   open: boolean
@@ -43,17 +44,7 @@ export function RenameFolderDialog({ open, onOpenChange, folder, onSuccess }: Re
 
     setIsRenaming(true)
     try {
-      const response = await fetch(`/api/cloudinary/folders/${folder.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: folderName.trim() }),
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || "Failed to rename folder")
-      }
-
+      updateFolder(folder.id, folderName.trim())
       toast.success("Folder renamed successfully")
       onOpenChange(false)
       onSuccess()

@@ -16,6 +16,9 @@ export function getFolder(id: string): Folder | null {
 }
 
 export function createFolder(name: string): Folder {
+  if (typeof window === "undefined") {
+    throw new Error("localStorage is only available in the browser")
+  }
   const folders = getFolders()
   const newFolder: Folder = {
     id: crypto.randomUUID(),
@@ -29,6 +32,7 @@ export function createFolder(name: string): Folder {
 }
 
 export function updateFolder(id: string, name: string): void {
+  if (typeof window === "undefined") return
   const folders = getFolders()
   const index = folders.findIndex((f) => f.id === id)
   if (index !== -1) {
@@ -38,6 +42,7 @@ export function updateFolder(id: string, name: string): void {
 }
 
 export function deleteFolder(id: string): void {
+  if (typeof window === "undefined") return
   const folders = getFolders()
   const filtered = folders.filter((f) => f.id !== id)
   localStorage.setItem(FOLDERS_KEY, JSON.stringify(filtered))
@@ -49,6 +54,7 @@ export function deleteFolder(id: string): void {
 }
 
 export function updateFolderImageCount(folderId: string): void {
+  if (typeof window === "undefined") return
   const folders = getFolders()
   const images = getImages()
   const index = folders.findIndex((f) => f.id === folderId)
@@ -71,6 +77,7 @@ export function getImagesByFolder(folderId: string): Image[] {
 }
 
 export function addImage(image: Image): void {
+  if (typeof window === "undefined") return
   const images = getImages()
   images.push(image)
   localStorage.setItem(IMAGES_KEY, JSON.stringify(images))
@@ -78,6 +85,7 @@ export function addImage(image: Image): void {
 }
 
 export function deleteImage(id: string): void {
+  if (typeof window === "undefined") return
   const images = getImages()
   const image = images.find((img) => img.id === id)
   const filtered = images.filter((img) => img.id !== id)

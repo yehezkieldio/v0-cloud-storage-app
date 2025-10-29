@@ -8,6 +8,7 @@ import { ImageGrid } from "@/components/image-grid"
 import { ImageViewer } from "@/components/image-viewer"
 import { Separator } from "@/components/ui/separator"
 import type { Folder, Image } from "@/lib/types"
+import { getFolders, getImages, getImagesByFolder } from "@/lib/storage"
 
 export default function HomePage() {
   const [folders, setFolders] = useState<Folder[]>([])
@@ -18,13 +19,11 @@ export default function HomePage() {
   const [isLoadingImages, setIsLoadingImages] = useState(true)
   const [viewerOpen, setViewerOpen] = useState(false)
 
-  // Load folders
-  const loadFolders = async () => {
+  const loadFolders = () => {
     setIsLoadingFolders(true)
     try {
-      const response = await fetch("/api/cloudinary/folders")
-      const data = await response.json()
-      setFolders(data.folders || [])
+      const loadedFolders = getFolders()
+      setFolders(loadedFolders)
     } catch (error) {
       console.error("Failed to load folders:", error)
     } finally {
@@ -32,17 +31,11 @@ export default function HomePage() {
     }
   }
 
-  // Load images
-  const loadImages = async () => {
+  const loadImages = () => {
     setIsLoadingImages(true)
     try {
-      const url = selectedFolderId
-        ? `/api/cloudinary/images?folderId=${encodeURIComponent(selectedFolderId)}`
-        : "/api/cloudinary/images"
-
-      const response = await fetch(url)
-      const data = await response.json()
-      setImages(data.images || [])
+      const loadedImages = selectedFolderId ? getImagesByFolder(selectedFolderId) : getImages()
+      setImages(loadedImages)
     } catch (error) {
       console.error("Failed to load images:", error)
     } finally {

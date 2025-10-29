@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { createFolder } from "@/lib/storage"
 
 interface CreateFolderDialogProps {
   open: boolean
@@ -32,17 +33,7 @@ export function CreateFolderDialog({ open, onOpenChange, onSuccess }: CreateFold
 
     setIsCreating(true)
     try {
-      const response = await fetch("/api/cloudinary/folders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: folderName.trim() }),
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || "Failed to create folder")
-      }
-
+      createFolder(folderName.trim())
       toast.success("Folder created successfully")
       setFolderName("")
       onOpenChange(false)
